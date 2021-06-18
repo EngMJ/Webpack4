@@ -4,6 +4,8 @@ const OptimizeCssAssetsWebpackPlugin = require('optimize-css-assets-webpack-plug
 const webpack = require('webpack');
 const AddAssetHtmlWebpackPlugin = require('add-asset-html-webpack-plugin');
 const hardSourceWebpackPlugin = require('hard-source-webpack-plugin');
+const TerserWebpackPlugin = require('terser-webpack-plugin')
+const ScriptExtHtmlWebpackPlugin = require('script-ext-html-webpack-plugin')
 
 /*
   tree shaking：去除无用代码
@@ -61,6 +63,11 @@ module.exports = {
         // libraryTarget: 'commonjs' // 变量名添加到哪个变量上 conmmonjs模块 exports
     },
     module: {
+        // 防止 webpack 解析那些任何与给定正则表达式相匹配的文件。
+        // 忽略的文件中不应该含有import,require,define的调用，或任何其他导入机制。
+        // 忽略大型的 library 可以提高构建性能。
+        // externals共用会导致externals失效，因为会不转换require(),导致文件无法读取
+        noParse:/jquery/,
         rules: [
             {
                 test: /\.less/,
@@ -145,7 +152,7 @@ module.exports = {
                         loader: 'html-loader'
                     },
                     {
-                        exclude: /\.(js|css|html|less|jpg|png|gif)/,
+                        exclude: /\.(js|css|html|less|jpg|png|gif)$/,
                         loader: 'file-loader',
                         options: {
                             outputPath: 'media'
@@ -176,8 +183,12 @@ module.exports = {
             filepath: resolve(__dirname, 'dll/jquery.js')
         }),
         // 缓存模块，提升打包速度
-        new hardSourceWebpackPlugin()
-    ],
+        new hardSourceWebpackPlugin(),
+        // 将runtimechunk文件，以行内形式打包进index.html,减少文件请求
+        new ScriptExtHtmlWebpackPlugin({
+            inline: /runtime~.+\.js$/  //正则匹配runtime文件名
+        })
+],
     devServer: {
         port: 8080, // 端口
         hot: true, // 打开HMR 热模块更新
@@ -215,10 +226,12 @@ module.exports = {
     devtool: 'eval-source-map',
     model: 'production', // development
     // 代码分割，会把node_modules中的文件打包到一起，如果是多入口则，
-    // 会将公共引用打包到一个文件，共同引用
+    // 会将公共引用打包到一个文件，共同引用。
+    // externals防止将某些 import 的包(package)打包到 bundle 中，
+    // 而是在运行时(runtime)再去从外部获取这些扩展依赖(external dependencies)
     externals: {
         // 拒绝jQuery被打包进来(通过cdn引入，速度会快一些)
-        // 忽略的库名 -- 全局变量
+        // 忽略import的库名 -- 导出的全局变量名称
         jquery: 'jQuery'
     },
     // 解析模块的规则
@@ -263,13 +276,19 @@ module.exports = {
         },
         /*
         chunkFilename中设置hash会导致一个问题：修改a文件导致b文件contenthash变化
-        （因为在index.js中import a.js，index.js中记录了a.js的hash值，而a.js改变，其hash改变，
-        导致index.js文件内容中记录的hash也改变，重新打包后index.js的hash也会变，这样就会使缓存失效）
+        （因为在index.js中import a.js，index.js中记录了a.js的hash值，而a.js改变，其contenthash改变，
+        导致index.js文件内容中记录的contenthash也改变，重新打包后index.js的contenthash也会变，这样就会使缓存失效）
         解决办法：runtimeChunk --> 将当前模块记录其他模块的hash单独打包为一个文件 runtime
         */
+        // 默认值为false
+        // true：对于每个entry会生成runtime~${entrypoint.name}的文件。
+        // name:{}：自定义runtime文件的name,也可以是字符串value
         runtimeChunk: {
-            name: entrypoint => `runtime-${entrypoint.name}`
+            name: entrypoint => `runtime~${entrypoint.name}`
         },
+        // 默认为true，效果就是压缩js代码
+        // webpack4默认的压缩为uglifyjs-webpack-plugin
+        // webpack5默认TerserWebpackPlugin
         minimizer: [
             // 配置生产环境的压缩方案：js/css
             new TerserWebpackPlugin({
@@ -278,7 +297,7 @@ module.exports = {
                 // 开启多进程打包
                 parallel: true,
                 // 启用sourceMap(否则会被压缩掉)
-                sourceMap: true
+                sourceMap: false
             })
         ]
     }
