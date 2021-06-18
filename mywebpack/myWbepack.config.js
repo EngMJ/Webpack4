@@ -335,11 +335,12 @@ module.exports = {
                 sourceMap: false
             })
         ],
+        // production 默认为true
         // 标识tree shaking代码，死代码
         // 结合TerserWebpackPlugin，可清除死代码
         // 只导出外部使用的模块成员 负责标记枯树叶
         usedExports: true,
-        // 开启副作用
-        sideEffects: true,
+        // 开启副作用，优先在packetjson中开启
+        // sideEffects: true,
     }
 }
