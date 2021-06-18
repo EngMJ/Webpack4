@@ -183,7 +183,33 @@ module.exports = {
             filepath: resolve(__dirname, 'dll/jquery.js')
         }),
         // 缓存模块，提升打包速度
-        new hardSourceWebpackPlugin(),
+        new hardSourceWebpackPlugin(
+            // {
+            //     //设置缓存目录的路径
+            //     //相对路径或者绝对路径
+            //     cacheDirectory: 'node_modules/.cache/hard-source/[confighash]',
+            //     //构建不同的缓存目录名称
+            //     //也就是cacheDirectory中的[confighash]值
+            //     configHash: function(webpackConfig) {
+            //         return require('node-object-hash')({sort: false}).hash(webpackConfig);
+            //     },
+            //     //环境hash
+            //     //当loader、plugin或者其他npm依赖改变时进行替换缓存
+            //     environmentHash: {
+            //         root: process.cwd(),
+            //         directories: [],
+            //         files: ['package-lock.json', 'yarn.lock'],
+            //     },
+            //     //自动清除缓存
+            //     cachePrune: {
+            //         //缓存最长时间（默认2天）
+            //         maxAge: 2 * 24 * 60 * 60 * 1000,
+            //         //所有的缓存大小超过size值将会被清除
+            //         //默认50MB
+            //         sizeThreshold: 50 * 1024 * 1024
+            //     },
+            // }
+        ),
         // 将runtimechunk文件，以行内形式打包进index.html,减少文件请求
         new ScriptExtHtmlWebpackPlugin({
             inline: /runtime~.+\.js$/  //正则匹配runtime文件名
@@ -240,13 +266,19 @@ module.exports = {
         alias: {
             $css: resolve(__dirname, 'src/css')
         },
-        // 配置省略文件路径的后缀名（引入时就可以不写文件后缀名了）
+        // 配置省略文件路径的后缀名（引入时就可以不写文件后缀名了）*-
         extensions: ['.js', '.json', '.jsx', '.css'],
         // 告诉 webpack 解析模块应该去找哪个目录
-        modules: [resolve(__dirname, '../../node_modules'), 'node_modules']
+        modules: [resolve(__dirname, '../../node_modules'), 'node_modules'],
+        // mainFields用来告诉webpack使用第三方模块中的哪个字段来导入模块；
+        // 第三方模块中都会有package.json文件用来描述模块，有多个特殊环境字段用来告诉webpack导入文件的位置
+        // 默认["browser", "module", "main"]，node环境是["module", "main"]
+        // 设置为单个可减少字段搜索
+        mainFields: ["main"]
     },
     optimization: {
         splitChunks: {
+            // 代码分割时默认对异步代码生效，all：所有代码有效，inital：同步代码有效
             chunks: 'all',
             /* 以下都是默认值，可以不写
             miniSize: 30 * 1024, // 分割的chunk最小为30kb（大于30kb的才分割）
@@ -264,13 +296,16 @@ module.exports = {
                 // 优先级
                 priority: -10
               },
-              default: {
+              commons: {
+                  name: 'chunk-commons',
                 // 要提取的chunk最少被引用2次
-                minChunks: 2,
-                prority: -20,
+                  minChunks: 2,
+                  priority: 5,
+                  chunks: 'initial',
                 // 如果当前要打包的模块和之前已经被提取的模块是同一个，就会复用，而不是重新打包
-                reuseExistingChunk: true
-              }
+                  reuseExistingChunk: true
+                }
+
             }*/
 
         },
@@ -299,6 +334,12 @@ module.exports = {
                 // 启用sourceMap(否则会被压缩掉)
                 sourceMap: false
             })
-        ]
+        ],
+        // 标识tree shaking代码，死代码
+        // 结合TerserWebpackPlugin，可清除死代码
+        // 只导出外部使用的模块成员 负责标记枯树叶
+        usedExports: true,
+        // 开启副作用
+        sideEffects: true,
     }
 }
