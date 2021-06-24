@@ -56,7 +56,7 @@ module.exports = {
         path: resolve(__dirname, 'build'),
         // 所有资源引入公共路径前缀 --> 'imgs/a.jpg' --> '/imgs/a.jpg'
         publicPath: '/',
-        chunkFilename: 'js/[name]_chunk.js', // 非入口chunk的名称
+        chunkFilename: 'js/[name]_chunk_[contenthash:10].js', // 非入口chunk的名称
         library: '[name]', // 打包整个库后向外暴露的变量名
         libraryTarget: 'window' // 变量名添加到哪个变量上 browser
         // libraryTarget: 'global' // 变量名添加到哪个变量上 node
