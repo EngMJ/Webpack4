@@ -288,12 +288,13 @@ module.exports = {
             maxInitialRequests: 3, // 入口js文件最大并行请求数量
             automaticNameDelimiter: '~', // 名称连接符
             name: true, // 可以使用命名规则
+            usedExports: true, // 打包时只包含应用中真正使用的模块,不打包使用的模块
             cacheGroups: { // 分割chunk的组
               vendors: {
                 // node_modules中的文件会被打包到vendors组的chunk中，--> vendors~xxx.js
                 // 满足上面的公共规则，大小超过30kb、至少被引用一次
                 test: /[\\/]node_modules[\\/]/,
-                // 优先级
+                // 优先级越大越先打包
                 priority: -10
               },
               commons: {
@@ -304,8 +305,16 @@ module.exports = {
                   chunks: 'initial',
                 // 如果当前要打包的模块和之前已经被提取的模块是同一个，就会复用，而不是重新打包
                   reuseExistingChunk: true
-                }
-
+                },
+                // 当想要首屏优化需要剥离一些包的时候,可以通过test与优先级来匹配各个包,让他们独立分割出来
+               indexchunk: {
+                  test: /[\\/]node_modules[\\/]|各种包路径正则/,
+                  name: 'index-chunk',
+                  priority: 10,
+                  chunks: 'all',
+                  // 强制执行此方案,无视splitChunks.minSize、splitChunks.minChunks、splitChunks.maxAsyncRequests 和 splitChunks.maxInitialRequests 选项，并始终为此缓存组创建 chunk
+                  enforce: true,
+                },
             }*/
 
         },
