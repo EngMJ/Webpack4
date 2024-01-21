@@ -56,12 +56,6 @@
       "not op_mini all"
     ]
   },
-  "eslintConfig": {
-    "extends": "airbnb-base",
-    "env": {
-      "browser": true
-    }
-  },
   "sideEffects": [
     "*.css"
   ],

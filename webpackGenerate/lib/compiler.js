@@ -47,6 +47,18 @@ class compiler{
                 }
             }
         }
+        /* 待定?
+          {
+            '绝对路径/index.js': {
+              code: 'xxx',
+              deps: { 'add.js': "xxx" }
+            },
+            '绝对路径/add.js': {
+              code: 'xxx',
+              deps: {}
+            }
+          }
+        */
         this.modules = temp
     }
 
@@ -133,7 +145,9 @@ class compiler{
             }
             runCode(${JSON.stringify(entryPath)})
         })(${JSON.stringify(depsGraph)})`
+        // 生成输出文件的绝对路径
         const outputPath = path.resolve(this.options.output.path,this.options.output.fileName)
+        // 写入文件
         fs.writeFileSync(outputPath, bundle, 'utf-8')
     }
 }
