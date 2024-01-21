@@ -55,6 +55,8 @@ module.exports = {
         filename: 'js/build_[contenthash:10].js',
         path: resolve(__dirname, 'build'),
         // 所有资源引入公共路径前缀 --> 'imgs/a.jpg' --> '/imgs/a.jpg'
+        // 通过cross-env设置打包环境变量, 在根据变量打包时进行动态选择,各个配置项参数可以动态修改publicPath, 实现不同项目使用不同的资源路径
+        // package.json: scripts: { "dev": "cross-env NODE_ENV=development webpack-dev-server --config webpack.config.js", }
         publicPath: '/',
         chunkFilename: 'js/[name]_chunk_[contenthash:10].js', // 非入口chunk的名称
         library: '[name]', // 打包整个库后向外暴露的变量名
