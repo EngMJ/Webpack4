@@ -220,7 +220,7 @@ module.exports = {
     devServer: {
         port: 8080, // 端口
         hot: true, // 打开HMR 热模块更新
-        compress: true, // gzie
+        compress: true, // gzip
         open: true, // 自动打开浏览器
         proxy: {
             '/api':{
