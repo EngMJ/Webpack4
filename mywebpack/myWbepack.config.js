@@ -362,5 +362,17 @@ module.exports = {
         usedExports: true,
         // 开启副作用，优先在packetjson中开启
         // sideEffects: true,
+    },
+
+    // webpack5 设置cache能够提升构建速度
+    cache: {
+        // type: 'memory', // 临时内存缓存
+        type: 'filesystem', // 文件缓存
+        // 使用这些项和所有依赖项的哈希值来使文件系统缓存失效
+        // 设置以下配置,来获取最新配置以及所有依赖项
+        buildDependencies: {
+            config: [__filename]
+        },
+        name: 'dev_cache' // 缓存文件名称
     }
 }
