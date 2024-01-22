@@ -364,6 +364,7 @@ module.exports = {
         // sideEffects: true,
     },
 
+    // https://blog.csdn.net/qq_39207948/article/details/124802300
     // webpack5 设置cache能够提升构建速度
     cache: {
         // type: 'memory', // 临时内存缓存
