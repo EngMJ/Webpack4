@@ -74,11 +74,12 @@ module.exports = {
             {
                 test: /\.less/,
                 use: [
-                    // 'style-loader', // 一起打包到js文件中
-                    MiniCssExtractPlugin.loader, // 打包成单文件
-                    'css-loader',
+                    // 'style-loader', // 以style标签行内样式的方式,插入head标签中
+                    MiniCssExtractPlugin.loader, // 打包成css单文件
+                    'css-loader', // 加载读取css文件内容
                     {
                         // 还需要子pakege.json中定义browserslist
+                        // 为css样式添加兼容前缀
                         loader: 'postcss-loader',
                         options: {
                             ident:'postcss',
@@ -86,6 +87,7 @@ module.exports = {
                         }
                     },
                     {
+                        // 处理less文件,转换为css文件
                         loders: 'less-loader',
                         options: {
                         }
@@ -135,7 +137,7 @@ module.exports = {
                                 }
                             }
                         ],
-                        enforce: 'pre',
+                        enforce: 'pre', // 先执行
                         // enforce: 'post', // 延后执行
                         includes: /src/
                     },
@@ -143,15 +145,16 @@ module.exports = {
                         test: /\.(jpg|png|gif)$/,
                         use: 'url-loader',
                         options: {
-                            limit: 8 * 1024,
+                            limit: 8 * 1024, // 大小小于这个的文件全部转换为base64编码方式加载
                             name: '[name]_[contenthash:10].[ext]',
                             outputPath: 'imgs',
                             esModule: false // 因为要配合html-loder的commenjs风格的转换，所以关闭esmodule风格
                         }
+                        // use: 'asset/inline'    webpack5,不再使用url-loader
                     },
                     {
                         test: /\.html$/,
-                        loader: 'html-loader'
+                        loader: 'html-loader' // 将 HTML 导出为字符串。当编译器需要时，将压缩 HTML 字符串
                     },
                     {
                         exclude: /\.(js|css|html|less|jpg|png|gif)$/,
@@ -159,7 +162,13 @@ module.exports = {
                         options: {
                             outputPath: 'media'
                         }
-                    }
+                        // use: 'asset/resource'    webpack5,不再使用file-loader
+                    },
+                    {
+                        test: /\.text$/i,
+                        use: 'raw-loader' // 将文件加载为 字符串文本
+                        // use: 'asset/source'    webpack5,不再使用raw-loader
+                    },
                 ]
             }
         ]
