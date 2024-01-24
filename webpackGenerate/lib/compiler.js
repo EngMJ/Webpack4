@@ -91,6 +91,13 @@ class compiler{
             "C:\Users\mj\Desktop\webpack5\code\webpackGenerate\src\index.js": {
                 "code": "\"use strict\";\n
                     // require函数其实是loaderRequire函数,其返回值是runCode中exports私有变量
+
+                    // 将require(\"./add.js\")解析为对象
+                    // {
+                    //      default: function add (arg1,arg2) { ... },
+                    //      __esModule: { value: true }
+                    // }
+
                     \n var _add = _interopRequireDefault(require(\"./add.js\"));
                     \n\n var _count = _interopRequireDefault(require(\"./count.js\"));
                     // 判断exports是否为esModule,不是则创建对应对象
@@ -106,7 +113,7 @@ class compiler{
            },
             "C:\\Users\\mj\\Desktop\\webpack5\\code\\webpackGenerate\\src\\add.js": {
                 "code": "\"use strict\";\n
-                    // 装载私有的exports变量,为babel类型的exports,然后续代码可用
+                    // 装载私有的exports变量,为babel类型的exports,让后续代码可用
                     \n Object.defineProperty(exports, \"__esModule\", {\n  value: true\n});
                     \n exports[\"default\"] = add;
                     \n\n function add(a, b) {\n  return a + b;\n}",
@@ -114,7 +121,7 @@ class compiler{
            },
             "C:\\Users\\mj\\Desktop\\webpack5\\code\\webpackGenerate\\src\\count.js": {
                 "code": "\"use strict\";\n
-                    // 装载私有的exports变量,为babel类型的exports,然后续代码可用
+                    // 装载私有的exports变量,为babel类型的exports,让后续代码可用
                     \n Object.defineProperty(exports, \"__esModule\", {\n  value: true\n});
                     \n exports[\"default\"] = count;
                     \n\n function count(a, b) {\n  return a - b;\n}",
@@ -148,6 +155,24 @@ class compiler{
         // 生成输出文件的绝对路径
         const outputPath = path.resolve(this.options.output.path,this.options.output.fileName)
         // 写入文件
+        /*
+           "\"use strict\";\n
+           // 原代码: var _add = _interopRequireDefault(require(\"./add.js\")); 转换为以下代码
+           \n var _add = _interopRequireDefault(
+                {
+                    default: function add (arg1,arg2) { ... },
+                    __esModule: { value: true }
+                }
+           );
+           // 此处代码也一样进行上方转换
+           \n var _count = _interopRequireDefault(require(\"./count.js\"));
+           // 判断exports是否为esModule,不是则创建对应对象
+           \n function _interopRequireDefault(obj) {
+               return obj && obj.__esModule ? obj : { \"default\": obj };
+           }
+           \n console.log((0, _add[\"default\"])(1, 2));
+           \n console.log((0, _count[\"default\"])(3, 2));",
+        * */
         fs.writeFileSync(outputPath, bundle, 'utf-8')
     }
 }
