@@ -6,6 +6,8 @@ const AddAssetHtmlWebpackPlugin = require('add-asset-html-webpack-plugin');
 const hardSourceWebpackPlugin = require('hard-source-webpack-plugin');
 const TerserWebpackPlugin = require('terser-webpack-plugin')
 const ScriptExtHtmlWebpackPlugin = require('script-ext-html-webpack-plugin')
+// webpack5 模块联邦
+const { ModuleFederationPlugin } = require('webpack').container;
 
 /*
   tree shaking：去除无用代码
@@ -224,7 +226,123 @@ module.exports = {
         // 将runtimechunk文件，以行内形式打包进index.html,减少文件请求
         new ScriptExtHtmlWebpackPlugin({
             inline: /runtime~.+\.js$/  //正则匹配runtime文件名
-        })
+        }),
+        // 定义引入的模块联邦插件设置
+        new ModuleFederationPlugin({
+            // 模块联邦名字，提供给其他模块使用
+            name: 'app1',
+            // 打包后的名称,以及外部访问的资源入口
+            // 目录路径相对于 output.path
+            // 定义用于存储模块联邦信息的文件的名称，默认为`remoteEntry.js`
+            filename: 'App1RemoteEntry.js',
+            // type 是变量的类型，分别有 'var'、'module'、'assign'、'assign-properties'、'this'、'window'、'self'、'global' 或 'commonjs'
+            // var 变量将挂载在 window 对象上. module 以 ES6 模块的形式导出. assign 以 CommonJS 模块的形式导出.
+            // name 是变量的名称。这将导致生成的远程引用代码中使用 remote_app 作为全局变量名称
+            library: { type: "var", name: "remote_app" },
+            // 定义远程模块的名称和加载方式的映射
+            remotes: {
+                /**
+                 *  App2 引用其他应用模块的资源别名
+                 *  app2 是 APP2 的模块联邦名字
+                 *  http://localhost:3001 是 APP2 运行的地址
+                 *  App2RemoteEntry.js 是 APP2 提供的外部访问的资源名字
+                 *  可以访问到 APP2 通过 exposes 暴露给外部的资源
+                 */
+                App2: 'app2@http://localhost:3001/App2RemoteEntry.js',
+                RemoteA: `RemoteA@${env.A_URL}/remoteEntry.js`,
+                // 使用函数来动态定义远程模块的加载路径
+                remoteApp: () => {
+                    if (process.env.NODE_ENV === 'production') {
+                        return 'remote_app@http://example.com/remoteEntry.js';
+                    } else {
+                        return 'remote_app_dev@http://localhost:3001/remoteEntry.js';
+                    }
+                },
+                // 使用返回 Promise 的函数来异步加载远程模块，这对于需要进行异步加载和初始化的场景非常有用
+                remote_App: () => import('remote_app@http://example.com/remoteEntry.js'),
+            },
+            // 控制远程模块的加载方式
+            // 选项的值可以是 'async'、'sync' 或 'prefetch'，分别代表异步加载、同步加载和预加载
+            remotesType: 'async',
+            // 暴露给外部的模块/文件夹/动态加载
+            // 键表示其他模块中引用的路径，值表示当前模块中实际的模块路径
+            exposes: {
+                Button: './src/components/Button',
+                './Header': './src/components/Header',
+                // 动态加载
+                './DynamicComponent': () => {
+                    if ('环境变量') {
+                        return './src/components/DynamicComponent1';
+                    } else {
+                        return './src/components/DynamicComponent2';
+                    }
+                },
+            },
+            // 共享模块,避免重复加载都有用到的模块，如lodash
+            // 优先用远程的依赖，如果远程版本不对或没有，再用本地版本
+            // shared 依赖不能 tree sharking
+            // 数组写法,设置的共享模块的配置项全是默认值
+            shared: [
+                'react',
+                'react-dom'
+            ],
+            /** 对象写法
+             * shared: {
+             *     react: {
+             *         // 定义共享模块的作用域，默认为 'default',共享模块在全局作用域内可见和访问
+             *         // 其他自定义值,则是独立的局部作用域,避免命名冲突
+             *         // 自定义 'test', 则加载时 import("test/共享模块名")
+             *         shareScope: 'default',
+             *
+             *         // 如果设置为 true，则共享模块将被导入到当前模块中；如果设置为 false，则共享模块将不会被导入,需外部下载脚本，而是由远程模块提供.
+             *         // 默认为 true, Webpack 将会将其打包到当前模块中，使其在运行时可用
+             *         import: true,
+             *
+             *         // 指定共享模块是否应该被视为单例模块，默认为 false,为每个模块创建一个实例
+             *         // 设置为true,共享模块将在所有使用它的模块中共享同一个实例. 如框架包 react
+             *         singleton: true,
+             *
+             *         // 设置为true,表示共享模块将在主应用程序启动时立即加载,
+             *         // 默认值false, 表示共享模块将会按需加载，即在模块被使用时才会被加载
+             *         eager: true,
+             *
+             *         // 加载共享模块的版本需要等于或大于定义的版本号要求,不符合则会警告报错，可以是一个字符串或对象，默认为 undefined
+             *         requiredVersion: {
+             *           react: '^16.0.0',
+             *           'react-dom': '^16.0.0'
+             *         },
+             *
+             *         // 锁定共享模块的版本号,只允许用对应版本否则警告报错，可以是一个字符串或对象，默认为 undefined
+             *         version: {
+             *           react: '16.13.1',
+             *           'react-dom': '16.13.1'
+             *         }
+             *     }
+             * }
+             *
+             * */
+            // 选项的值可以是 'eager' 或 'lazy'，分别代表主应用程序启动时立即加载和按需加载
+            sharedType: 'lazy',
+        }),
+        // 定义app2导出设置
+        // new ModuleFederationPlugin({
+        //     // 模块联邦名字，提供给其他模块使用
+        //     name: 'app2',
+        //     // 提供给外部访问的资源入口
+        //     filename: 'App2RemoteEntry.js',
+        //     // 引用的外部资源列表
+        //     remotes: {},
+        //     // 暴露给外部的资源列表
+        //     exposes: {
+        //         /**
+        //          *  ./Header 是让外部应用使用时基于这个路径拼接引用路径，如：App2/Header
+        //          *  ./src/Header.js 是当前应用的要暴露给外部的资源模块路径
+        //          */
+        //         './Header': './src/Header.js',
+        //     },
+        //     // 共享模块，值当前被 exposes 的模块需要使用的共享模块，如lodash
+        //     shared: {},
+        // }),
 ],
     devServer: {
         port: 8080, // 端口
