@@ -19,7 +19,11 @@ const { ModuleFederationPlugin } = require('webpack').container;
         这样会导致的问题：可能会把css / @babel/polyfill （副作用）文件干掉
       所以可以配置："sideEffects": ["*.css", "*.less"] 不会对css/less文件tree shaking处理
 */
-
+/**
+ * webpack 5 tree Shaking优化,增加cache属性,将hash转变为fullhash,不再为 Node.js 模块自动引用 polyfill、也内置了terser进行代码压缩
+ * fullhash 是根据打包中的所有文件计算出来的 hash 值，在一次打包中，所有的资源出口文件的filename获得的[hash]都是一样的
+ * contenthash webpack4对于添加注释和修改变量其实，是会影响它的一个contenthash值的计算. webpack 5不会影响,contenthash值不变
+ * */
 
 
 // 定义nodejs环境变量：决定使用browserslist的哪个环境
@@ -227,6 +231,7 @@ module.exports = {
         new ScriptExtHtmlWebpackPlugin({
             inline: /runtime~.+\.js$/  //正则匹配runtime文件名
         }),
+        // webpack5
         // 定义引入的模块联邦插件设置
         new ModuleFederationPlugin({
             // 模块联邦名字，提供给其他模块使用
